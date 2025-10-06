@@ -16,7 +16,7 @@ class DeviceConfigCommands:
 
     @classmethod
     def get_config_command(cls, device: dict) -> str:
-        """Получение команды для отображения конфигурации устройства"""
+        """Получение команды для выгрузки конфигурации устройства"""
         device_type = device.get('device_type')
 
         if device_type is None:
