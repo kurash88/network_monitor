@@ -6,7 +6,7 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
 import asyncio
-from core.monitor import AdvancedNetworkMonitor
+from core.start_stop_all import AdvancedNetworkMonitor
 
 
 async def main():
