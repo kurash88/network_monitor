@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from dataclasses import dataclass
 from typing import Dict, Optional
@@ -13,11 +14,13 @@ class NetworkDevicePollStatus:
     last_config: Optional[str] = None
 
 
-class NetworkDeviceStatusTracker:
+class StatusReport:
     """Класс для отслеживания статуса устройств"""
     
     def __init__(self):
         self.device_status: Dict[str, NetworkDevicePollStatus] = {}
+        self.logger = logging.getLogger(f"{__name__}.StatusReport")
+        self.logger.info("StatusReport инициализирован")
 
     def update_status(self, host: str, result: Dict):
         """Обновление статуса устройства"""
@@ -36,9 +39,9 @@ class NetworkDeviceStatusTracker:
 
     def print_status_report(self):
         """Печать отчета о статусе устройств"""
-        print("\n" + "=" * 60)
-        print("ОТЧЕТ О СТАТУСЕ УСТРОЙСТВ")
-        print("=" * 60)
+        self.logger.warning("\n" + "=" * 60)
+        self.logger.warning("ОТЧЕТ О СТАТУСЕ УСТРОЙСТВ")
+        self.logger.warning("=" * 60)
 
         for host, status in self.device_status.items():
             total_attempts = status.success_count + status.failure_count
@@ -49,9 +52,9 @@ class NetworkDeviceStatusTracker:
 
             last_success = status.last_success.strftime('%H:%M:%S') if status.last_success else 'НИКОГДА'
 
-            print(f"  {host}:")
-            print(f"    Успешно: {status.success_count}, Ошибок: {status.failure_count}")
-            print(f"    Успешность: {success_rate:.1f}%")
-            print(f"    Последний успех: {last_success}")
+            self.logger.warning(f"  {host}:")
+            self.logger.warning(f"    Успешно: {status.success_count}, Ошибок: {status.failure_count}")
+            self.logger.warning(f"    Успешность: {success_rate:.1f}%")
+            self.logger.warning(f"    Последний успех: {last_success}")
 
-        print("=" * 60)
+        self.logger.warning("=" * 60)

@@ -1,18 +1,21 @@
+import logging
 import os
 from difflib import Differ
 from datetime import datetime
 from typing import Optional
 
 
-class NetworkDevicesExtractedConfigsSaver:
+class ExtractedConfigsSaver:
     """Класс для сохранения конфигураций"""
-    
+
+    logger = logging.getLogger("ExtractedConfigsSaver")
+
     def __init__(self, config_dir: str = 'configs'):
         self.config_dir = config_dir
         os.makedirs(config_dir, exist_ok=True)
 
-    @staticmethod
-    def show_diff_colored(latest_config, new_config):
+    @classmethod
+    def show_diff_colored(cls, latest_config, new_config):
         latest_lines = latest_config.splitlines()
         new_lines = new_config.splitlines()
 
@@ -29,6 +32,7 @@ class NetworkDevicesExtractedConfigsSaver:
                 print(f"\033[93m{line}\033[0m")  # Желтый - изменения
             else:
                 print(line)  # Без изменений
+
     async def save_config_if_changed(self, host: str, new_config: str):
         """Сохраняет конфигурацию только если она изменилась"""
         try:
@@ -46,12 +50,12 @@ class NetworkDevicesExtractedConfigsSaver:
                 with open(filename, 'w', newline='') as f:
                     f.write(new_config)
 
-                print(f"Конфигурация {host} сохранена (изменения обнаружены)")
+                self.logger.debug(f"Конфигурация {host} сохранена (изменения обнаружены)")
             else:
-                print(f"Конфигурация {host} не изменилась")
+                self.logger.debug(f"Конфигурация {host} не изменилась")
 
         except Exception as e:
-            print(f"Ошибка сохранения конфигурации {host}: {e}")
+            self.logger.exception(f"Ошибка сохранения конфигурации {host}: {e}")
 
     def _get_latest_config(self, host: str) -> Optional[str]:
         """Получение последней сохраненной конфигурации"""
@@ -60,6 +64,6 @@ class NetworkDevicesExtractedConfigsSaver:
                 if filename.startswith(f"{host}_"):
                     with open(os.path.join(self.config_dir, filename), 'r', newline='') as f:
                         return f.read()
-        except Exception:
-            pass
+        except Exception as e:
+            self.logger.exception(f"Ошибка при получении последней сохраненной конфигурации {host}: {e}")
         return None
