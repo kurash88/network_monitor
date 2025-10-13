@@ -1,52 +1,39 @@
 import asyncio
 import logging
-import sys
-
-from core.start_stop import AdvancedNetworkMonitor
-
-
-def setup_logging(level=logging.INFO, log_file=None):
-    """Настройка логирования один раз при старте приложения"""
-
-    handlers = [logging.StreamHandler(sys.stdout)]
-
-    if log_file:
-        handlers.append(logging.FileHandler(log_file))
-
-    logging.basicConfig(
-        level=level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=handlers
-    )
-
-    logging.getLogger('asyncssh').setLevel(logging.WARNING)  # уменьшаем шум asyncssh
+import utils.setup_logging
+from utils.filewatcher import FileWatcher
+from utils.task_manager import TaskManager, OneShotRunner, PeriodicRunner
 
 
 async def main():
-    setup_logging(level=logging.WARNING, log_file='network_monitor.log')
-    logger = logging.getLogger("main")
+    config_path = './credentials/credentials.yaml'
+    one_shot_runner = None
+    periodic_runner = None
     try:
-        monitor = AdvancedNetworkMonitor(
-            poll_interval=60,
-            config_check_interval=30
-        )
+        one_shot_runner = OneShotRunner()
+        periodic_runner = PeriodicRunner()
+        watcher = FileWatcher(config_path)
+        task_manager = TaskManager(config_path, one_shot_runner, periodic_runner)
+        await task_manager.add_task_queues_to_runners()
+        watcher.add_observer(task_manager)
+        await watcher.watch()
 
-        # Проверяем, что монитор корректно инициализирован
-        if not hasattr(monitor, 'is_running') or not monitor.is_running:
-            logger.error("Монитор не был корректно инициализирован")
-            return
-
-        await monitor.start_monitoring()
-
-    except Exception as e:
-        logger.exception(f"Ошибка инициализации монитора: {e}")
-        return
     except KeyboardInterrupt:
-        logger.exception("\nЗавершение работы монитора...")
+        logger.info("Получен сигнал прерывания")
+        if one_shot_runner is not None:
+            await one_shot_runner.stop_all_tasks()
+        if periodic_runner is not None:
+            await periodic_runner.stop_all_tasks()
+
     finally:
-        if 'monitor' in locals():
-            monitor.stop()
+        logger.info("Приложение завершено")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    utils.setup_logging.setup(level=logging.INFO, log_file='network_monitor.log')
+    logger = logging.getLogger("main")
+
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Приложение завершено пользователем")
